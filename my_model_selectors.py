@@ -77,13 +77,12 @@ class SelectorBIC(ModelSelector):
         warnings.filterwarnings("ignore", category=DeprecationWarning)
 
         # TODO implement model selection based on BIC scores
-        print(list(range(self.min_n_components,self.max_n_components)))
+        BIC={}
+        for num_comps in list(range(self.min_n_components, self.max_n_components + 1)):
 
-        for num_comps in list(range(self.min_n_components,self.max_n_components)):
-
-            model = GaussianHMM(n_components=num_comps, n_iter=1000).fit(self.X, self.lengths)
-            logL = model.score(self.X, self.lengths)
-            print("Reached after for {} the logL is {}".format(num_comps,logL))
+            # model = GaussianHMM(n_components=num_comps, n_iter=1000).fit(self.X, self.lengths)
+            # logL = model.score(self.X, self.lengths)
+            # print("Reached after for {} the logL is {}".format(num_comps,logL))
 
             '''
             For the above 3 lines, my code runs for num_comps =2,3,4,5 but fails when =6
@@ -94,24 +93,22 @@ class SelectorBIC(ModelSelector):
             , and also not sure what the self.random_state is for?
             '''
 
+            logL=0
+            try:
+                model = GaussianHMM(n_components=num_comps, n_iter=1000, verbose=False,
+                                    random_state=self.random_state).fit(self.X, self.lengths)
+                logL = model.score(self.X, self.lengths)
 
-            # logL=0
-            # try:
-            #     model = GaussianHMM(n_components=num_comps, n_iter=1000,
-            #                         random_state=self.random_state, verbose=False).fit(self.X, self.lengths)
-            #     if self.verbose:
-            #         logL = model.score(self.X, self.lengths)
-            #         print("Reached after for {} the logL is {}".format(num_comps,logL))
-            # except:
-            #     if self.verbose:
-            #         print("failure on {} with {} states".format(self.this_word, num_states))
+                print("Reached after for {} the logL is {}".format(num_comps,logL))
+                BIC[num_comps] = -2*logL + num_comps*math.log(len(self.lengths))
 
-            # BIC = -2*logL +
+            except:
+                print("failure on {} with {} states".format(self.this_word, num_comps))
+                BIC[num_comps] = float('inf')
 
+        key_min = min(BIC.keys(), key=(lambda k: BIC[k]))
 
-        print("Here maate")
-        return self.base_model(logL)
-        raise NotImplementedError
+        return self.base_model(key_min)
 
 
 class SelectorDIC(ModelSelector):
