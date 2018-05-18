@@ -76,39 +76,35 @@ class SelectorBIC(ModelSelector):
         """
         warnings.filterwarnings("ignore", category=DeprecationWarning)
 
-        # TODO implement model selection based on BIC scores
-        BIC={}
+        # BIC={}
+        best_model = None
+        best_score = float("inf")
         for num_comps in list(range(self.min_n_components, self.max_n_components + 1)):
-
-            # model = GaussianHMM(n_components=num_comps, n_iter=1000).fit(self.X, self.lengths)
-            # logL = model.score(self.X, self.lengths)
-            # print("Reached after for {} the logL is {}".format(num_comps,logL))
-
-            '''
-            For the above 3 lines, my code runs for num_comps =2,3,4,5 but fails when =6
-            It fails in the model.score( ) function
-
-            I tried to impliment the code below to use Try and Except to get around this, used the base_model as an example
-            but don't really understand how to get the verbose to be True and so it never enters into those if statements
-            , and also not sure what the self.random_state is for?
-            '''
 
             logL=0
             try:
-                model = GaussianHMM(n_components=num_comps, n_iter=1000, verbose=False,
-                                    random_state=self.random_state).fit(self.X, self.lengths)
+                # model = GaussianHMM(n_components=num_comps, n_iter=1000, verbose=False,
+                                    # random_state=self.random_state).fit(self.X, self.lengths)
+                model = self.base_model(num_comps)
                 logL = model.score(self.X, self.lengths)
 
-                print("Reached after for {} the logL is {}".format(num_comps,logL))
-                BIC[num_comps] = -2*logL + num_comps*math.log(len(self.lengths))
+                # print("Reached after for {} the logL is {}".format(num_comps,logL))
+
+                # Number of parameters is the sum of Transition probs, starting probs,
+                # Number of means and variances
+                p = num_comps**2 + 2*num_comps*model.n_features - 1
+                this_BIC = -2*logL + p*math.log(len(self.X))
+                if this_BIC < best_score:
+                    best_model = model
+                    best_score = this_BIC
 
             except:
-                print("failure on {} with {} states".format(self.this_word, num_comps))
-                BIC[num_comps] = float('inf')
+                # print("failure on {} with {} states".format(self.this_word, num_comps))
+                # BIC[num_comps] = float('inf')
+                pass
 
-        key_min = min(BIC.keys(), key=(lambda k: BIC[k]))
-
-        return self.base_model(key_min)
+        # key_min = min(BIC.keys(), key=(lambda k: BIC[k]))
+        return best_model
 
 
 class SelectorDIC(ModelSelector):
@@ -125,7 +121,34 @@ class SelectorDIC(ModelSelector):
         warnings.filterwarnings("ignore", category=DeprecationWarning)
 
         # TODO implement model selection based on DIC scores
-        raise NotImplementedError
+        DIC = {}
+        Best_DIC = float("-inf")
+        DIC_model = None
+
+        for num_comps in list(range(self.min_n_components, self.max_n_components + 1)):
+
+            logL=0
+            otherscores = 0
+            try:
+                model = self.base_model(num_comps)
+                this_logL = model.score(self.X, self.lengths)
+
+                for otherword in self.words:
+                    if otherword == self.this_word:
+                        continue
+                    otherX,otherLen = self.hwords[otherword]
+                    otherLogL = model.score(otherX,otherLen)
+                    otherscores += otherLogL
+
+                thisDIC = this_logL - otherscores/(len(self.words)-1)
+                if thisDIC > Best_DIC:
+                    DIC_model = model
+                    Best_DIC = thisDIC
+
+            except:
+                pass
+
+        return DIC_model
 
 
 class SelectorCV(ModelSelector):
