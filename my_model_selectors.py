@@ -140,7 +140,7 @@ class SelectorDIC(ModelSelector):
                     otherLogL = model.score(otherX,otherLen)
                     otherscores += otherLogL
 
-                thisDIC = this_logL - otherscores/(len(self.words)-1)
+                thisDIC = this_logL - otherscores/(len(self.hwords)-1)
                 if thisDIC > Best_DIC:
                     DIC_model = model
                     Best_DIC = thisDIC
